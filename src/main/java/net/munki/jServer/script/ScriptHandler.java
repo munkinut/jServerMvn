@@ -4,6 +4,7 @@ import groovy.lang.Binding;
 import groovy.util.GroovyScriptEngine;
 import groovy.util.ResourceException;
 import groovy.util.ScriptException;
+import net.munki.jServer.exception.jServerException;
 import net.munki.jServer.property.PropertyManager;
 
 import java.io.File;
@@ -31,7 +32,7 @@ public class ScriptHandler {
         log.info("scriptPath = " + scriptPath);
     }
 
-    public void handleScript(String name, String description, InputStream is, OutputStream os, String[] params) {
+    public void handleScript(String name, String description, InputStream is, OutputStream os, String[] params) throws jServerException {
         log.info("Script name comes in as : " + name);
         String command = name;
         if(isGroovyScript(command)) {
@@ -58,6 +59,7 @@ public class ScriptHandler {
         }
         else {
             log.warning("Script was not Groovy.");
+            throw new jServerException("No such script.");
         }
     }
 

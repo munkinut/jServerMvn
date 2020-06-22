@@ -6,6 +6,7 @@ package net.munki.jServer.service;
  * Created on 18 May 2020, 21:57
  */
 
+import net.munki.jServer.exception.jServerException;
 import net.munki.jServer.property.PropertyManager;
 import net.munki.jServer.script.ScriptHandler;
 
@@ -45,38 +46,44 @@ public class ScriptService {
         PrintWriter pw = new PrintWriter(new BufferedWriter(osw));
         BufferedReader inbound = new BufferedReader(isr);
 
-        String commandLine;
+        String commandLine = "";
         String cmd = "";
         ArrayList<String> paramList = new ArrayList<>();
 
-        try {
-            log.info("Sending greeting.");
-            pw.println("Connected to " + this.getServiceName());
-            pw.flush();
-            commandLine = inbound.readLine();
-            StringTokenizer st = new StringTokenizer(commandLine);
-            paramList = new ArrayList<>();
-            while (st.hasMoreTokens()) {
-                paramList.add(st.nextToken());
-            }
-            if (!paramList.isEmpty()) {
-                cmd = paramList.remove(0);
-            }
+        log.info("Sending greeting.");
+        pw.println("Connected to " + this.getServiceName());
+        pw.flush();
 
-            log.info("Read line. Command was " + commandLine);
-            pw.println("Connecting to " + cmd + " ...");
-            pw.flush();
+        try {
+            while ((commandLine = inbound.readLine()) != null) {
+                if (commandLine.equals("EXIT")) break;
+                StringTokenizer st = new StringTokenizer(commandLine);
+                paramList = new ArrayList<>();
+                while (st.hasMoreTokens()) {
+                    paramList.add(st.nextToken());
+                }
+                if (!paramList.isEmpty()) {
+                    cmd = paramList.remove(0);
+                }
+
+                log.info("Read line. Command was " + commandLine);
+                String[] params = new String[paramList.size()];
+                params = paramList.toArray(params);
+
+                try {
+                    sh.handleScript(cmd, "Could be anything!!", i, o, params);
+                }
+                catch (jServerException e) {
+                    pw.println("No such command.");
+                    pw.flush();
+                    log.warning("No such command: " + cmd);
+                }
+            }
         }
         catch (IOException e) {
             log.warning("Could not read line from client: " + e.getMessage());
         }
 
-        String[] params = new String[paramList.size()];
-        params = paramList.toArray(params);
-
-        sh.handleScript(cmd, "Could be anything!!", i, o, params);
-
-        pw.println("Disconnecting from " + cmd + " ...");
         pw.println("Disconnecting from " + this.getServiceName() + " ...");
         pw.flush();
 
@@ -89,12 +96,6 @@ public class ScriptService {
         } catch (IOException e) {
             log.warning("Could not gracefully close the connection: " + e.getMessage());
         }
-
-//        try {
-//            Thread.sleep(1000);
-//        } catch (InterruptedException ie) {
-//            log.warning(ie.toString());
-//       }
 
     }
 
